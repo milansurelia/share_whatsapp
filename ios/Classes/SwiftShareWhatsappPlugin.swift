@@ -23,6 +23,11 @@ public class SwiftShareWhatsappPlugin: NSObject, FlutterPlugin {
             return
         }
         
+        if call.method == "shareFiles" {
+            self.shareFiles(call.arguments, result: result)
+            return
+        }
+        
         result(FlutterMethodNotImplemented)
     }
 }
@@ -37,6 +42,56 @@ extension SwiftShareWhatsappPlugin {
             if let filePath = dict["file"] as? String {
                 let file = URL(fileURLWithPath: filePath)
                 activityItems.append(file)
+            }
+            let activityViewController = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+            
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                activityViewController.popoverPresentationController?.sourceView = UIApplication.topViewController()?.view
+                if let view = UIApplication.topViewController()?.view {
+                    activityViewController.popoverPresentationController?.permittedArrowDirections = []
+                    activityViewController.popoverPresentationController?.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
+                }
+            }
+            
+            activityViewController.excludedActivityTypes = [
+                UIActivity.ActivityType.postToFacebook,
+                UIActivity.ActivityType.postToTwitter,
+                UIActivity.ActivityType.postToWeibo,
+                UIActivity.ActivityType.message,
+                UIActivity.ActivityType.print,
+                UIActivity.ActivityType.copyToPasteboard,
+                UIActivity.ActivityType.assignToContact,
+                UIActivity.ActivityType.saveToCameraRoll,
+                UIActivity.ActivityType.addToReadingList,
+                UIActivity.ActivityType.postToFlickr,
+                UIActivity.ActivityType.postToVimeo,
+                UIActivity.ActivityType.postToTencentWeibo,
+                UIActivity.ActivityType.airDrop,
+                UIActivity.ActivityType.mail,
+            ]
+            
+            DispatchQueue.main.async {
+                self.presentActivityView(activityViewController: activityViewController)
+            }
+            
+            result(1)
+            return
+        }
+        
+        result(FlutterError(code: "ERROR_SHARE", message: "Arguments is not a dictionary [String:String]", details: arguments.debugDescription))
+    }
+    
+    fileprivate func shareFiles(_ arguments: Any?, result: @escaping FlutterResult) {
+        if let dict = arguments as? [String: Any?] {
+            var activityItems = [Any]()
+            if let text = dict["text"] as? String {
+                activityItems.append(OptionalTextActivityItemSource(text: text))
+            }
+            if let filesPath = dict["files"] as? [String] {
+                for filePath in filesPath {
+                    let file = URL(fileURLWithPath: filePath)
+                    activityItems.append(file)
+                }
             }
             let activityViewController = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
             

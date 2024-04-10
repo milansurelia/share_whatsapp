@@ -74,4 +74,46 @@ class MethodChannelShareWhatsapp extends ShareWhatsappUrl {
 
     throw UnimplementedError('Unknown platform ${Platform.operatingSystem}');
   }
+
+  @override
+  Future<bool> shareFiles({WhatsApp type = WhatsApp.standard, String? phone, List<XFile>? files}) async {
+    // Desktop platforms
+    if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
+      if(files != null && files.isNotEmpty) {
+        return await super.share(
+          type: type,
+          phone: phone,
+          text: null,
+          file: files.first,
+        );
+      }
+      return await super.share(
+        type: type,
+        phone: phone,
+        text: null,
+        file: null,
+      );
+    }
+
+    // Mobile platforms
+    if (Platform.isAndroid || Platform.isIOS) {
+      String? contentType;
+      if (files != null && files.isNotEmpty) {
+        final bytes = await files.first.readAsBytes();
+        contentType = lookupMimeType(files.first.path, headerBytes: bytes.toList());
+      }
+
+      final shared = await methodChannel.invokeMethod<int>('shareFiles', {
+        'packageName': type.packageName,
+        'phone': phone?.removeNonNumber(),
+        'text': null,
+        'files': files?.map((e) => e.path).toList(),
+        'contentType': contentType,
+      });
+
+      return shared == 1;
+    }
+
+    throw UnimplementedError('Unknown platform ${Platform.operatingSystem}');
+  }
 }

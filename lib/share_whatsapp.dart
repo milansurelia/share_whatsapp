@@ -27,17 +27,24 @@ class ShareWhatsapp {
   ///
   /// [phone] is optional for Android, mandatory for Web, MacOS, Linux and Windows.
   /// But it will be ignored on iOS.
-  Future<bool> shareText(String text,
-          {String? phone, WhatsApp type = WhatsApp.standard}) =>
+  Future<bool> shareText(String text, {String? phone, WhatsApp type = WhatsApp.standard}) =>
       share(type: type, text: text, phone: phone);
 
   /// Share file into whatsapp
   ///
   /// [phone] is optional for Android, mandatory for Web, MacOS, Linux and Windows.
   /// But it will be ignored on iOS.
-  Future<bool> shareFile(XFile file,
-          {String? phone, WhatsApp type = WhatsApp.standard}) =>
+  Future<bool> shareFile(XFile file, {String? phone, WhatsApp type = WhatsApp.standard}) =>
       share(type: type, file: file, phone: phone);
+
+  /// Share files into whatsapp
+  ///
+  /// [phone] is optional for Android, mandatory for Web, MacOS, Linux and Windows.
+  /// But it will be ignored on iOS.
+  Future<bool> shareFiles(List<XFile>? files, {String? phone, WhatsApp type = WhatsApp.standard}) {
+    assert(!(files == null), "Either set files");
+    return ShareWhatsappPlatform.instance.shareFiles(type: type, phone: phone, files: files);
+  }
 
   /// Share text message and or file into whatsapp
   ///
@@ -53,7 +60,6 @@ class ShareWhatsapp {
   }) {
     assert(!(text == null && file == null), "Either set text and or file");
 
-    return ShareWhatsappPlatform.instance
-        .share(type: type, phone: phone, text: text, file: file);
+    return ShareWhatsappPlatform.instance.share(type: type, phone: phone, text: text, file: file);
   }
 }

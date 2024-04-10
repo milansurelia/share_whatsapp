@@ -3,6 +3,7 @@ package id.my.alan.share_whatsapp
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.util.Log
 import androidx.annotation.NonNull
 import androidx.core.content.FileProvider
@@ -90,6 +91,10 @@ class ShareWhatsappPlugin : FlutterPlugin, MethodCallHandler {
                 clearShareCacheFolder()
                 share(call, result)
             }
+            "shareFiles" -> {
+                clearShareCacheFolder()
+                shareFiles(call, result)
+            }
             else -> {
                 result.notImplemented()
             }
@@ -130,7 +135,6 @@ class ShareWhatsappPlugin : FlutterPlugin, MethodCallHandler {
             val contentType = call.argument<String?>("contentType")
             val file = call.argument<String?>("file")
             val context = weakReference.get()
-
             if (context != null) {
                 val intent = Intent().apply {
                     action = Intent.ACTION_SEND
@@ -155,8 +159,7 @@ class ShareWhatsappPlugin : FlutterPlugin, MethodCallHandler {
                         uriFile = copyToShareCacheFolder(uriFile)
                         Log.d(TAG, "Cache file path : ${uriFile.canonicalPath}")
 
-                        val fileUri =
-                            FileProvider.getUriForFile(context, providerAuthority, uriFile)
+                        val fileUri = FileProvider.getUriForFile(context, providerAuthority, uriFile)
                         putExtra(Intent.EXTRA_STREAM, fileUri)
                     } else if (text != null) {
                         type = "text/plain"
@@ -167,6 +170,58 @@ class ShareWhatsappPlugin : FlutterPlugin, MethodCallHandler {
                     addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     if (file != null) addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                })
+
+                result.success(1)
+                return
+            }
+
+            result.error("INVALID_CONTEXT", "No application context found", null)
+        } catch (e: Exception) {
+            result.error("ERROR_SHARE", e.message, e)
+        }
+    }
+
+    private fun shareFiles(@NonNull call: MethodCall, @NonNull result: Result) {
+        try {
+            val packageName = call.argument<String>("packageName")
+            val phone = call.argument<String?>("phone")
+            val text = call.argument<String?>("text")
+            val contentType = call.argument<String?>("contentType")
+            val files = call.argument<List<String>?>("files")
+            val context = weakReference.get()
+            val imageUris = arrayListOf<Uri>()
+            if (context != null && files != null) {
+                files.forEach {file ->
+                    var uriFile = File(file)
+                    if (fileIsInShareCache(uriFile)) {
+                        // If file is saved in '.../caches/share_whatsapp' it will be erased by 'clearShareCacheFolder()'
+                        throw IOException("Shared file can not be located in '${shareCacheFolder.canonicalPath}'")
+                    }
+                    uriFile = copyToShareCacheFolder(uriFile)
+                    Log.d(TAG, "Cache file path : ${uriFile.canonicalPath}")
+
+                    val fileUri = FileProvider.getUriForFile(context, providerAuthority, uriFile)
+                    imageUris.add(fileUri)
+                }
+                val intent = Intent().apply {
+                    action = Intent.ACTION_SEND_MULTIPLE
+
+                    setPackage(packageName)
+                    if (phone != null) {
+                        putExtra("jid", "$phone@s.whatsapp.net")
+                    }
+                    if (text != null) {
+                        putExtra(Intent.EXTRA_TEXT, text)
+                    }
+                    type = contentType ?: "*/*"
+                    putParcelableArrayListExtra(Intent.EXTRA_STREAM, imageUris)
+                }
+
+                context.startActivity(Intent.createChooser(intent, null).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 })
 
                 result.success(1)

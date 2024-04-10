@@ -37,4 +37,12 @@ abstract class ShareWhatsappPlatform extends PlatformInterface {
   }) {
     throw UnimplementedError('share() has not been implemented.');
   }
+
+  Future<bool> shareFiles({
+    WhatsApp type = WhatsApp.standard,
+    String? phone,
+    List<XFile>? files,
+  }) {
+    throw UnimplementedError('share() has not been implemented.');
+  }
 }
